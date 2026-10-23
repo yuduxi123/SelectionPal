@@ -16,6 +16,7 @@ final class SelectionController {
     private var lastSelectionTime = Date.distantPast
     private var mouseDownLocation: NSPoint?
     private let calculator = QuickCalculator()
+    private let courseJudge = CourseJudge()
 
     init(settings: AppSettings, translator: TranslationModel) {
         self.settings = settings
@@ -26,10 +27,20 @@ final class SelectionController {
         panel.onEnglishToChinese = { [weak self] text in self?.translate(text, from: "en", to: "zh-Hans") }
         panel.onCalculate = { [weak self] text, operation in
             guard let self else { return }
+            self.courseJudge.cancel()
             self.translator.cancel()
             self.panel.showResult(self.calculator.calculate(text, operation: operation))
         }
-        panel.onDismiss = { [weak self] in self?.translator.cancel() }
+        panel.onJudge = { [weak self] text in
+            guard let self else { return }
+            self.translator.cancel()
+            self.panel.showLoading("Codex 正在判断，必要时联网核实…")
+            self.courseJudge.judge(text) { [weak self] result in self?.panel.showResult(result) }
+        }
+        panel.onDismiss = { [weak self] in
+            self?.translator.cancel()
+            self?.courseJudge.cancel()
+        }
         translator.onResult = { [weak self] result in self?.panel.showResult(result) }
         translator.onError = { [weak self] message in self?.panel.showResult("翻译失败：\(message)") }
     }
@@ -112,6 +123,8 @@ final class SelectionController {
             if text == lastSelection, now.timeIntervalSince(lastSelectionTime) < 0.8 { return }
             lastSelection = text
             lastSelectionTime = now
+            courseJudge.cancel()
+            translator.cancel()
             panel.show(text: text, near: NSEvent.mouseLocation)
         }
     }
@@ -125,7 +138,10 @@ final class SelectionController {
     }
 
     private func translate(_ text: String, from source: String, to target: String) {
+        courseJudge.cancel()
         panel.showLoading()
         translator.translate(text, source: source, target: target)
     }
+
+
 }

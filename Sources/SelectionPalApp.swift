@@ -65,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showHelp() {
         let alert = NSAlert()
         alert.messageText = "划词助手"
-        alert.informativeText = "划选文字或公式，在鼠标旁点翻译或计算，结果直接显示在浮条下方。\n\n计算保留六项：四则 / 次方、最大公约数、最小公倍数、取余、模幂、模逆元。\n例如：2^128；540,144；17^170 mod 13。\n\n计算离线运行。首次使用需允许辅助功能；翻译可能需下载语言包。"
+        alert.informativeText = "划选文字或公式，在鼠标旁点翻译、计算或判断，结果直接显示在浮条下方。\n\n计算支持四则 / 次方、GCD、LCM、取余、模幂、模逆元和进制转换，离线执行。\n\n判断：用本机已登录的 Codex 判断中英文陈述的事实对错，不限课程，无需课件。必要时联网查证并附来源；信息不足或有歧义会提示无法判断。消耗 Codex 额度，选中句子会发送给 Codex，搜索时相关查询会发送给搜索服务。AI 结论仍需核对。\n\n右侧小按钮可复制完整结果。首次使用需允许辅助功能，翻译可能需下载语言包。"
         alert.addButton(withTitle: "知道了")
         alert.runModal()
     }

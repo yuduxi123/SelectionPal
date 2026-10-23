@@ -7,12 +7,14 @@ final class ActionPanelController: NSWindowController {
     var onChineseToEnglish: ((String) -> Void)?
     var onEnglishToChinese: ((String) -> Void)?
     var onCalculate: ((String, String) -> Void)?
+    var onJudge: ((String) -> Void)?
     var onDismiss: (() -> Void)?
 
     private let panelWidth: CGFloat = 442
     private let barHeight: CGFloat = 52
     private let resultLabel = NSTextField(wrappingLabelWithString: "")
     private let resultArea = NSView()
+    private let copyButton = NSButton()
     private var selectedText = ""
     private var isChoosingCalculation = false
 
@@ -24,6 +26,7 @@ final class ActionPanelController: NSWindowController {
             defer: false
         )
         self.init(window: panel)
+        panel.title = "划词操作条"
         panel.level = .popUpMenu
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -56,13 +59,14 @@ final class ActionPanelController: NSWindowController {
         actions.spacing = 5
         actions.edgeInsets = NSEdgeInsets(top: 8, left: 9, bottom: 8, right: 9)
 
-        actions.addArrangedSubview(actionButton(title: "UK", symbol: "speaker.wave.2.fill", tooltip: "英式发音", width: 64, action: #selector(british)))
-        actions.addArrangedSubview(actionButton(title: "US", symbol: "speaker.wave.2.fill", tooltip: "美式发音", width: 64, action: #selector(american)))
+        actions.addArrangedSubview(actionButton(title: "UK", symbol: "speaker.wave.2.fill", tooltip: "英式发音", width: 52, action: #selector(british)))
+        actions.addArrangedSubview(actionButton(title: "US", symbol: "speaker.wave.2.fill", tooltip: "美式发音", width: 52, action: #selector(american)))
         actions.addArrangedSubview(separator())
-        actions.addArrangedSubview(actionButton(title: "中 → 英", symbol: "character.bubble.fill", tooltip: "翻译为英文", width: 94, action: #selector(chineseToEnglish)))
-        actions.addArrangedSubview(actionButton(title: "英 → 中", symbol: "character.bubble", tooltip: "翻译为中文", width: 94, action: #selector(englishToChinese)))
+        actions.addArrangedSubview(actionButton(title: "中 → 英", symbol: "character.bubble.fill", tooltip: "翻译为英文", width: 76, action: #selector(chineseToEnglish)))
+        actions.addArrangedSubview(actionButton(title: "英 → 中", symbol: "character.bubble", tooltip: "翻译为中文", width: 76, action: #selector(englishToChinese)))
         actions.addArrangedSubview(separator())
         actions.addArrangedSubview(actionButton(title: "计算", symbol: "function", tooltip: "次方、GCD 与密码学计算", width: 64, action: #selector(calculationMenu(_:))))
+        actions.addArrangedSubview(actionButton(title: "判断", symbol: "checkmark.seal", tooltip: "用 Codex 判断陈述对错，必要时联网核实（消耗 Codex 额度）", width: 58, action: #selector(judge)))
 
         resultArea.translatesAutoresizingMaskIntoConstraints = false
         resultArea.isHidden = true
@@ -74,11 +78,19 @@ final class ActionPanelController: NSWindowController {
 
         resultLabel.translatesAutoresizingMaskIntoConstraints = false
         resultLabel.isSelectable = true
-        resultLabel.maximumNumberOfLines = 6
+        resultLabel.maximumNumberOfLines = 9
         resultLabel.lineBreakMode = .byWordWrapping
         resultLabel.font = .systemFont(ofSize: 13)
         resultLabel.textColor = .labelColor
         resultArea.addSubview(resultLabel)
+
+        copyButton.image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: "复制结果")
+        copyButton.isBordered = false
+        copyButton.toolTip = "复制完整结果"
+        copyButton.target = self
+        copyButton.action = #selector(copyResult)
+        copyButton.translatesAutoresizingMaskIntoConstraints = false
+        resultArea.addSubview(copyButton)
 
         NSLayoutConstraint.activate([
             resultDivider.topAnchor.constraint(equalTo: resultArea.topAnchor),
@@ -86,7 +98,11 @@ final class ActionPanelController: NSWindowController {
             resultDivider.trailingAnchor.constraint(equalTo: resultArea.trailingAnchor, constant: -10),
             resultLabel.topAnchor.constraint(equalTo: resultDivider.bottomAnchor, constant: 10),
             resultLabel.leadingAnchor.constraint(equalTo: resultArea.leadingAnchor, constant: 14),
-            resultLabel.trailingAnchor.constraint(equalTo: resultArea.trailingAnchor, constant: -14),
+            resultLabel.trailingAnchor.constraint(equalTo: resultArea.trailingAnchor, constant: -42),
+            copyButton.trailingAnchor.constraint(equalTo: resultArea.trailingAnchor, constant: -10),
+            copyButton.topAnchor.constraint(equalTo: resultDivider.bottomAnchor, constant: 8),
+            copyButton.widthAnchor.constraint(equalToConstant: 24),
+            copyButton.heightAnchor.constraint(equalToConstant: 24),
             resultLabel.bottomAnchor.constraint(equalTo: resultArea.bottomAnchor, constant: -12)
         ])
 
@@ -137,18 +153,21 @@ final class ActionPanelController: NSWindowController {
         window?.orderFrontRegardless()
     }
 
-    func showLoading() {
-        resultLabel.stringValue = "正在翻译…"
+    func showLoading(_ message: String = "正在翻译…") {
+        copyButton.isEnabled = false
+        resultLabel.stringValue = message
         resultLabel.textColor = .secondaryLabelColor
         resultArea.isHidden = false
         resize(height: 96, animated: true)
     }
 
     func showResult(_ result: String) {
+        copyButton.isEnabled = true
+        resultLabel.toolTip = result
         resultLabel.stringValue = result
         resultLabel.textColor = .labelColor
         resultArea.isHidden = false
-        let bounds = NSRect(x: 0, y: 0, width: panelWidth - 28, height: 180)
+        let bounds = NSRect(x: 0, y: 0, width: panelWidth - 56, height: 180)
         let textHeight = resultLabel.cell?.cellSize(forBounds: bounds).height ?? 20
         resize(height: min(220, max(100, barHeight + textHeight + 30)), animated: true)
     }
@@ -183,6 +202,12 @@ final class ActionPanelController: NSWindowController {
     @objc private func american() { onAmerican?(selectedText) }
     @objc private func chineseToEnglish() { onChineseToEnglish?(selectedText) }
     @objc private func englishToChinese() { onEnglishToChinese?(selectedText) }
+    @objc private func judge() { onJudge?(selectedText) }
+
+    @objc private func copyResult() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(resultLabel.stringValue, forType: .string)
+    }
 
     @objc private func calculationMenu(_ sender: NSButton) {
         let menu = NSMenu(title: "计算")
@@ -192,6 +217,17 @@ final class ActionPanelController: NSWindowController {
             item.representedObject = id
             menu.addItem(item)
         }
+        menu.addItem(.separator())
+        let conversion = NSMenuItem(title: "进制转换", action: nil, keyEquivalent: "")
+        let bases = NSMenu(title: "进制转换")
+        for (id, title) in [("base", "自动识别（默认十进制）"), ("base2", "按二进制读取"), ("base8", "按八进制读取"), ("base10", "按十进制读取"), ("base16", "按十六进制读取")] {
+            let item = NSMenuItem(title: title, action: #selector(calculate(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            bases.addItem(item)
+        }
+        conversion.submenu = bases
+        menu.addItem(conversion)
         isChoosingCalculation = true
         defer { isChoosingCalculation = false }
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.maxY + 4), in: sender)
