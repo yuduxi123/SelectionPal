@@ -7,7 +7,8 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "SelectionPal",
-            path: "Sources"
+            path: "Sources",
+            resources: [.copy("Resources")]
         )
     ],
     swiftLanguageModes: [.v5]

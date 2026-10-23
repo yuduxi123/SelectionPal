@@ -6,17 +6,19 @@ final class ActionPanelController: NSWindowController {
     var onAmerican: ((String) -> Void)?
     var onChineseToEnglish: ((String) -> Void)?
     var onEnglishToChinese: ((String) -> Void)?
+    var onCalculate: ((String, String) -> Void)?
     var onDismiss: (() -> Void)?
 
-    private let panelWidth: CGFloat = 366
+    private let panelWidth: CGFloat = 442
     private let barHeight: CGFloat = 52
     private let resultLabel = NSTextField(wrappingLabelWithString: "")
     private let resultArea = NSView()
     private var selectedText = ""
+    private var isChoosingCalculation = false
 
     convenience init() {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 366, height: 52),
+            contentRect: NSRect(x: 0, y: 0, width: 442, height: 52),
             styleMask: [.nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -59,6 +61,8 @@ final class ActionPanelController: NSWindowController {
         actions.addArrangedSubview(separator())
         actions.addArrangedSubview(actionButton(title: "中 → 英", symbol: "character.bubble.fill", tooltip: "翻译为英文", width: 94, action: #selector(chineseToEnglish)))
         actions.addArrangedSubview(actionButton(title: "英 → 中", symbol: "character.bubble", tooltip: "翻译为中文", width: 94, action: #selector(englishToChinese)))
+        actions.addArrangedSubview(separator())
+        actions.addArrangedSubview(actionButton(title: "计算", symbol: "function", tooltip: "次方、GCD 与密码学计算", width: 64, action: #selector(calculationMenu(_:))))
 
         resultArea.translatesAutoresizingMaskIntoConstraints = false
         resultArea.isHidden = true
@@ -150,7 +154,7 @@ final class ActionPanelController: NSWindowController {
     }
 
     func dismiss() {
-        guard window?.isVisible == true else { return }
+        guard !isChoosingCalculation, window?.isVisible == true else { return }
         window?.orderOut(nil)
         onDismiss?()
     }
@@ -179,6 +183,25 @@ final class ActionPanelController: NSWindowController {
     @objc private func american() { onAmerican?(selectedText) }
     @objc private func chineseToEnglish() { onChineseToEnglish?(selectedText) }
     @objc private func englishToChinese() { onEnglishToChinese?(selectedText) }
+
+    @objc private func calculationMenu(_ sender: NSButton) {
+        let menu = NSMenu(title: "计算")
+        for (id, title) in [("expression", "四则 / 次方"), ("gcd", "最大公约数"), ("lcm", "最小公倍数"), ("mod", "取余"), ("pow", "模幂"), ("inv", "模逆元")] {
+            let item = NSMenuItem(title: title, action: #selector(calculate(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = id
+            menu.addItem(item)
+        }
+        isChoosingCalculation = true
+        defer { isChoosingCalculation = false }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.maxY + 4), in: sender)
+    }
+
+    @objc private func calculate(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        let text = selectedText
+        onCalculate?(text, id)
+    }
 }
 
 @MainActor

@@ -65,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func showHelp() {
         let alert = NSAlert()
         alert.messageText = "划词助手"
-        alert.informativeText = "在任意应用中选中文字，鼠标松开后会显示操作条。\n\n🇬🇧 英式发音　🇺🇸 美式发音\n中→英　把中文翻译成英文\n英→中　把英文翻译成中文\n\n首次使用请在系统设置中允许“辅助功能”。翻译使用 macOS Translation，首次可能需要下载语言包。"
+        alert.informativeText = "划选文字或公式，在鼠标旁点翻译或计算，结果直接显示在浮条下方。\n\n计算保留六项：四则 / 次方、最大公约数、最小公倍数、取余、模幂、模逆元。\n例如：2^128；540,144；17^170 mod 13。\n\n计算离线运行。首次使用需允许辅助功能；翻译可能需下载语言包。"
         alert.addButton(withTitle: "知道了")
         alert.runModal()
     }

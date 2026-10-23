@@ -15,6 +15,7 @@ final class SelectionController {
     private var lastSelection = ""
     private var lastSelectionTime = Date.distantPast
     private var mouseDownLocation: NSPoint?
+    private let calculator = QuickCalculator()
 
     init(settings: AppSettings, translator: TranslationModel) {
         self.settings = settings
@@ -23,6 +24,11 @@ final class SelectionController {
         panel.onAmerican = { [weak self] text in self?.speak(text, language: "en-US") }
         panel.onChineseToEnglish = { [weak self] text in self?.translate(text, from: "zh-Hans", to: "en") }
         panel.onEnglishToChinese = { [weak self] text in self?.translate(text, from: "en", to: "zh-Hans") }
+        panel.onCalculate = { [weak self] text, operation in
+            guard let self else { return }
+            self.translator.cancel()
+            self.panel.showResult(self.calculator.calculate(text, operation: operation))
+        }
         panel.onDismiss = { [weak self] in self?.translator.cancel() }
         translator.onResult = { [weak self] result in self?.panel.showResult(result) }
         translator.onError = { [weak self] message in self?.panel.showResult("翻译失败：\(message)") }
